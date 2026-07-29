@@ -39,15 +39,22 @@ fi
 
 echo "=== 3/3 Testando conexão Oracle ==="
 mkdir -p logs
-./venv/bin/python -c "
-import oracledb
-oracledb.init_oracle_client(lib_dir='/opt/megadash-sync/instantclient')
-conn = oracledb.connect(user='RAC', password='P9mXf0BE63', dsn='dbconnect.megaerp.online:4221/xepdb1')
+if [ ! -f .env ]; then
+  echo "[!] .env não encontrado — pulando teste de conexão. Crie .env (veja .env.example) e rode:"
+  echo '    set -a; source .env; set +a; ./venv/bin/python -c "from _common import get_oracle_conn; c=get_oracle_conn(); print(c.cursor().execute(\"SELECT 1 FROM dual\").fetchone()); c.close()"'
+else
+  set -a
+  source .env
+  set +a
+  ./venv/bin/python -c "
+from _common import get_oracle_conn
+conn = get_oracle_conn()
 cur = conn.cursor()
 cur.execute('SELECT 1 FROM dual')
 print('OK — Oracle respondeu:', cur.fetchone())
 conn.close()
 "
+fi
 
 echo ""
 echo "✅ Setup completo!"
