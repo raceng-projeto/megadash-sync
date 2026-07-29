@@ -26,7 +26,9 @@ def get_oracle_conn():
     init_oracle()
     for attempt in range(4):
         try:
-            return oracledb.connect(user=ORACLE_USER, password=ORACLE_PASSWORD, dsn=ORACLE_DSN)
+            conn = oracledb.connect(user=ORACLE_USER, password=ORACLE_PASSWORD, dsn=ORACLE_DSN)
+            conn.call_timeout = 300_000  # 5min por chamada — evita travar pra sempre numa query presa
+            return conn
         except oracledb.DatabaseError as e:
             code = e.args[0].code if e.args and hasattr(e.args[0], "code") else None
             if code in (12516, 12520) and attempt < 3:

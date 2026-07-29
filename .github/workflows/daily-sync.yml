@@ -8,7 +8,7 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false   # um script travando/falhando não cancela os outros
       max-parallel: 3    # Oracle (XE) só aguenta poucas conexões simultâneas — 7 ao mesmo
