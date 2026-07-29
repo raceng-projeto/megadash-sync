@@ -1,0 +1,9 @@
+venv/
+instantclient/
+logs/
+__pycache__/
+*.pyc
+backup*/
+*.zip
+.env
+META-INF/
