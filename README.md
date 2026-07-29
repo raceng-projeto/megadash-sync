@@ -8,6 +8,11 @@ Workflow em `.github/workflows/daily-sync.yml`, agendado pra `0 3 * * *` (03:00 
 meia-noite BRT). Não precisa de VPS: o runner do GitHub instala o Instant Client e as
 deps a cada execução e descarta tudo no final.
 
+Cada script roda como um **job separado** (matrix), em paralelo, com timeout de 10min
+cada. Isso isola falhas — se um script travar ou der erro, os outros continuam normalmente
+(diferente do modelo antigo de VPS, onde um script travado bloqueava a fila inteira) — e
+reduz o tempo total, já que rodam ao mesmo tempo em vez de em sequência.
+
 ### Setup (uma vez)
 
 Em **Settings → Secrets and variables → Actions → New repository secret**, adicionar:
@@ -24,7 +29,7 @@ Em **Settings → Secrets and variables → Actions → New repository secret**,
 ### Rodar manualmente / ver logs
 
 Aba **Actions → Daily MegaDash Sync → Run workflow** (dispara na hora, sem esperar o
-agendamento). Cada execução guarda os logs como artifact por 14 dias.
+agendamento). Os logs de cada script ficam no próprio job (clique no job pra ver).
 
 ## Rodando em VPS própria (legado)
 

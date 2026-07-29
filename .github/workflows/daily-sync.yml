@@ -8,7 +8,18 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false   # um script travando/falhando não cancela os outros
+      matrix:
+        script:
+          - sync_cadastro_agentes.py
+          - sync_cadastro_projetos.py
+          - sync_fin_movimentos.py
+          - sync_fin_lancproj.py
+          - sync_fin_centro_custo.py
+          - sync_fin_retencoes.py
+          - sync_fin_baixas.py
     env:
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_PASSWORD: ${{ secrets.ORACLE_PASSWORD }}
@@ -42,29 +53,5 @@ jobs:
       - name: Instalar dependências Python
         run: pip install --quiet oracledb requests
 
-      - name: Rodar sync
-        run: |
-          mkdir -p logs
-          STAMP=$(date +%Y%m%d_%H%M%S)
-          LOG="logs/run_${STAMP}.log"
-          for script in \
-              sync_cadastro_agentes.py \
-              sync_cadastro_projetos.py \
-              sync_fin_movimentos.py \
-              sync_fin_lancproj.py \
-              sync_fin_centro_custo.py \
-              sync_fin_retencoes.py \
-              sync_fin_baixas.py
-          do
-            echo "" | tee -a "$LOG"
-            echo ">>> $script" | tee -a "$LOG"
-            python "$script" 2>&1 | tee -a "$LOG" || echo "[!] $script falhou — continuando" | tee -a "$LOG"
-          done
-
-      - name: Upload dos logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sync-logs-${{ github.run_id }}
-          path: logs/
-          retention-days: 14
+      - name: Rodar ${{ matrix.script }}
+        run: python "${{ matrix.script }}"
