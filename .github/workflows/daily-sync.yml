@@ -1,0 +1,70 @@
+name: Daily MegaDash Sync
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC = 00:00 BRT
+  workflow_dispatch: {}    # permite rodar manualmente pela aba Actions
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_PASSWORD: ${{ secrets.ORACLE_PASSWORD }}
+      ORACLE_DSN: ${{ secrets.ORACLE_DSN }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SYNC_API_KEY: ${{ secrets.SYNC_API_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      INSTANT_CLIENT_DIR: ${{ github.workspace }}/instantclient
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar Oracle Instant Client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libaio1t64 unzip wget || sudo apt-get install -y -qq libaio1 unzip wget
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2340000/instantclient-basic-linux.x64-23.4.0.24.05.zip -O ic.zip
+          unzip -q ic.zip
+          mv instantclient_23_4 instantclient
+          rm ic.zip
+          if ! ldconfig -p | grep -q "libaio.so.1 "; then
+            AIO_T64=$(ldconfig -p | awk '/libaio.so.1t64/ {print $NF; exit}')
+            [ -n "$AIO_T64" ] && sudo ln -sf "$AIO_T64" /usr/lib/x86_64-linux-gnu/libaio.so.1
+          fi
+          echo "$INSTANT_CLIENT_DIR" | sudo tee /etc/ld.so.conf.d/megadash-instantclient.conf
+          sudo ldconfig
+
+      - name: Instalar dependências Python
+        run: pip install --quiet oracledb requests
+
+      - name: Rodar sync
+        run: |
+          mkdir -p logs
+          STAMP=$(date +%Y%m%d_%H%M%S)
+          LOG="logs/run_${STAMP}.log"
+          for script in \
+              sync_cadastro_agentes.py \
+              sync_cadastro_projetos.py \
+              sync_fin_movimentos.py \
+              sync_fin_lancproj.py \
+              sync_fin_centro_custo.py \
+              sync_fin_retencoes.py \
+              sync_fin_baixas.py
+          do
+            echo "" | tee -a "$LOG"
+            echo ">>> $script" | tee -a "$LOG"
+            python "$script" 2>&1 | tee -a "$LOG" || echo "[!] $script falhou — continuando" | tee -a "$LOG"
+          done
+
+      - name: Upload dos logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-logs-${{ github.run_id }}
+          path: logs/
+          retention-days: 14

@@ -8,7 +8,7 @@ import os
 ORACLE_USER = os.environ.get("ORACLE_USER", "RAC")
 ORACLE_PASSWORD = os.environ["ORACLE_PASSWORD"]
 ORACLE_DSN = os.environ.get("ORACLE_DSN", "dbconnect.megaerp.online:4221/xepdb1")
-INSTANT_CLIENT_DIR = "/opt/megadash-sync/instantclient"
+INSTANT_CLIENT_DIR = os.environ.get("INSTANT_CLIENT_DIR", "/opt/megadash-sync/instantclient")
 
 # Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://fkcvhrgxwnuioszfukar.supabase.co")
