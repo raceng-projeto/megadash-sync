@@ -21,8 +21,20 @@ def init_oracle():
 
 
 def get_oracle_conn():
+    """Conecta no Oracle com retry — o listener (XE) às vezes recusa conexão
+    (ORA-12516/ORA-12520) quando várias conexões chegam ao mesmo tempo."""
     init_oracle()
-    return oracledb.connect(user=ORACLE_USER, password=ORACLE_PASSWORD, dsn=ORACLE_DSN)
+    for attempt in range(4):
+        try:
+            return oracledb.connect(user=ORACLE_USER, password=ORACLE_PASSWORD, dsn=ORACLE_DSN)
+        except oracledb.DatabaseError as e:
+            code = e.args[0].code if e.args and hasattr(e.args[0], "code") else None
+            if code in (12516, 12520) and attempt < 3:
+                wait = 5 * (attempt + 1)
+                print(f"  [!] Oracle recusou conexão (ORA-{code}), tentando de novo em {wait}s...", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            raise
 
 
 def fetch_oracle(sql: str) -> list[dict]:

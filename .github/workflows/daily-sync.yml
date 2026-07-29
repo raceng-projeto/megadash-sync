@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 10
     strategy:
       fail-fast: false   # um script travando/falhando não cancela os outros
+      max-parallel: 3    # Oracle (XE) só aguenta poucas conexões simultâneas — 7 ao mesmo
+                          # tempo estourava o listener (ORA-12516)
       matrix:
         script:
           - sync_cadastro_agentes.py
